@@ -1,0 +1,22 @@
+from pydantic import BaseModel
+from typing import List, Optional
+
+class ArticleBase(BaseModel):
+    title: str
+    description: str
+    body: str
+    tagList: Optional[List[str]] = None
+
+class ArticleCreate(ArticleBase):
+    pass
+
+class ArticleUpdate(ArticleBase):
+    pass
+
+class ArticleOut(ArticleBase):
+    id: int
+    slug: str
+    user_id: int
+
+    class Config:
+        from_attributes = True
