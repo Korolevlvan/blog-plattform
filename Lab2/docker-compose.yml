@@ -1,0 +1,92 @@
+version: "3.9"
+
+services:
+  db-main:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${BACKEND_DB_USER:-app}
+      POSTGRES_PASSWORD: ${BACKEND_DB_PASSWORD:-app}
+      POSTGRES_DB: ${BACKEND_DB_NAME:-app_main}
+    volumes:
+      - db_main_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BACKEND_DB_USER:-app} -d ${BACKEND_DB_NAME:-app_main}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  db-users:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${USERS_DB_USER:-app}
+      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:-app}
+      POSTGRES_DB: ${USERS_DB_NAME:-app_users}
+    volumes:
+      - db_users_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${USERS_DB_USER:-app} -d ${USERS_DB_NAME:-app_users}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://${BACKEND_DB_USER:-app}:${BACKEND_DB_PASSWORD:-app}@db-main:5432/${BACKEND_DB_NAME:-app_main}
+      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      APP_TITLE: backend
+    depends_on:
+      db-main:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  users-api:
+    build: ./users_service
+    environment:
+      DATABASE_URL: postgresql://${USERS_DB_USER:-app}:${USERS_DB_PASSWORD:-app}@db-users:5432/${USERS_DB_NAME:-app_users}
+      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      APP_TITLE: users-api
+    depends_on:
+      db-users:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api-gateway:
+    image: nginx:1.27-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+      users-api:
+        condition: service_healthy
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  db_main_data:
+  db_users_data:
