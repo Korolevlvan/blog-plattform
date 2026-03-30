@@ -1,4 +1,5 @@
-from sqlalchemy.orm import declarative_base
-from .user import User
-from .database import Base
-Base = declarative_base()
+from src.models.article import Article
+from src.models.comment import Comment
+from src.models.user import User
+
+__all__ = ["User", "Article", "Comment"]

@@ -1,13 +1,20 @@
 from fastapi import FastAPI
-from src.routes.user_routes import router as user_router
-from src.routes.article_routes import router as article_router
-from src.routes.comment_routes import router as comment_router
-from src.db import Base, engine
 
-Base.metadata.create_all(bind=engine)
+from src.routes import users, articles, comments
 
-app = FastAPI(title="Blog Platform API")
+app = FastAPI(
+    title="Blog Platform API",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
-app.include_router(user_router, prefix="/api", tags=["Users"])
-app.include_router(article_router, prefix="/api", tags=["Articles"])
-app.include_router(comment_router, prefix="/api", tags=["Comments"])
+
+@app.get("/health")
+def healthcheck() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+app.include_router(users.router)
+app.include_router(articles.router)
+app.include_router(comments.router)
