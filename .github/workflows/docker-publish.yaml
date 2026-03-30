@@ -38,11 +38,3 @@ jobs:
           file: ./Lab1/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Build and push Docker image2
-        uses: docker/build-push-action@v5
-        with:
-          context: ./Lab2
-          file: ./Lab2/Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
